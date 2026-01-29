@@ -1,9 +1,9 @@
 "use client"
 
-import { useActionState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { signUp } from "@/app/auth/actions"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,14 +17,50 @@ import {
 import { Layers } from "lucide-react"
 
 export default function SignUpPage() {
-  const [state, formAction, isPending] = useActionState(signUp, null)
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, setIsPending] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    if (state?.success) {
-      router.push("/auth/sign-up-success")
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    setIsPending(true)
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+    const displayName = formData.get("displayName") as string
+
+    if (!email || !password || !displayName) {
+      setError("All fields are required")
+      setIsPending(false)
+      return
     }
-  }, [state?.success, router])
+
+    try {
+      const supabase = createClient()
+      const { error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName,
+            is_admin: false,
+          },
+        },
+      })
+
+      if (authError) {
+        setError(authError.message)
+      } else {
+        router.push("/auth/sign-up-success")
+      }
+    } catch {
+      setError("An unexpected error occurred. Please try again.")
+    } finally {
+      setIsPending(false)
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -43,10 +79,10 @@ export default function SignUpPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={formAction} className="space-y-4">
-            {state?.error && (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-                {state.error}
+                {error}
               </div>
             )}
             <div className="space-y-2">
