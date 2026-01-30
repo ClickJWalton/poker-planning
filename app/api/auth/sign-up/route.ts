@@ -1,36 +1,48 @@
-import { createClient } from "@/lib/supabase/server"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { createUser, createSession } from "@/lib/auth"
 
-export async function POST(request: Request) {
-  const { email, password, displayName } = await request.json()
-
-  if (!email || !password || !displayName) {
-    return NextResponse.json({ error: "All fields are required" }, { status: 400 })
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const { email, password, displayName } = await request.json()
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: false,
-        data: {
-          display_name: displayName,
-          is_admin: false,
-        },
-      },
-    })
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+    // Validation
+    if (!email || !password || !displayName) {
+      return NextResponse.json(
+        { error: "All fields are required" },
+        { status: 400 }
+      )
     }
 
-    return NextResponse.json({ success: true })
-  } catch {
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "Password must be at least 6 characters" },
+        { status: 400 }
+      )
+    }
+
+    // Create user
+    const user = await createUser(email, displayName, password)
+    if (!user) {
+      return NextResponse.json(
+        { error: "Email already in use or failed to create user" },
+        { status: 400 }
+      )
+    }
+
+    // Create session
+    const token = await createSession(user.id)
+    if (!token) {
+      return NextResponse.json(
+        { error: "Failed to create session" },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ success: true, userId: user.id })
+  } catch (error) {
+    console.error("Sign up error:", error)
     return NextResponse.json(
-      { error: "An unexpected error occurred. Please try again." },
+      { error: "An unexpected error occurred" },
       { status: 500 }
     )
   }
