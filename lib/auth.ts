@@ -1,15 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
-import crypto from "crypto"
+import { createHash, randomUUID } from "crypto"
 
 export async function hashPassword(password: string): Promise<string> {
-  const buffer = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(password)
-  )
-  return Array.from(new Uint8Array(buffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
+  return createHash("sha256").update(password).digest("hex")
 }
 
 export async function createUser(
@@ -43,7 +37,7 @@ export async function verifyPassword(
 }
 
 export async function createSession(userId: string): Promise<string | null> {
-  const token = crypto.randomUUID()
+  const token = randomUUID()
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
   const supabase = await createClient()
 
