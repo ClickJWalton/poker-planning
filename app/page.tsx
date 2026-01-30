@@ -11,7 +11,12 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Layers, Plus, Users, LogOut, Crown } from "lucide-react"
-import type { User } from "@supabase/supabase-js"
+
+interface User {
+  id: string
+  email: string
+  display_name: string
+}
 
 function generateCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -30,12 +35,22 @@ export default function HomePage() {
 
   useEffect(() => {
     async function getUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
+      try {
+        const response = await fetch("/api/auth/me")
+        if (response.ok) {
+          const data = await response.json()
+          setUser(data.user)
+        } else {
+          router.push("/auth/login")
+        }
+      } catch {
+        router.push("/auth/login")
+      } finally {
+        setLoading(false)
+      }
     }
     getUser()
-  }, [supabase])
+  }, [router])
 
   const handleCreateSession = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,7 +100,7 @@ export default function HomePage() {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await fetch("/api/auth/logout", { method: "POST" })
     router.push("/auth/login")
   }
 
@@ -125,7 +140,7 @@ export default function HomePage() {
     )
   }
 
-  const displayName = user.user_metadata?.display_name || user.email?.split("@")[0] || "User"
+  const displayName = user?.display_name || user?.email?.split("@")[0] || "User"
 
   return (
     <div className="min-h-screen bg-background">
