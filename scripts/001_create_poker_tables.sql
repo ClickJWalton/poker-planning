@@ -78,7 +78,3 @@ CREATE POLICY "Users can delete their votes" ON public.votes
 DROP POLICY IF EXISTS "Users can view their own profile" ON public.users;
 CREATE POLICY "Users can view their own profile" ON public.users
   FOR SELECT USING (TRUE);
-
--- Enable realtime for tables
-ALTER PUBLICATION supabase_realtime ADD TABLE public.sessions;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.votes;
