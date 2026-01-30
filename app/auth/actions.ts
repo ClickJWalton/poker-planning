@@ -26,8 +26,7 @@ export async function signUp(
       email,
       password,
       options: {
-        emailRedirectTo:
-          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || undefined,
+        emailRedirectTo: false,
         data: {
           display_name: displayName,
           is_admin: false,
@@ -60,13 +59,17 @@ export async function signIn(
   try {
     const supabase = await createClient()
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (error) {
       return { error: error.message }
+    }
+
+    if (!data.session) {
+      return { error: "Failed to create session" }
     }
 
     return { success: true }

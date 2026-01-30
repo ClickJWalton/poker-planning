@@ -15,8 +15,7 @@ export async function POST(request: Request) {
       email,
       password,
       options: {
-        emailRedirectTo:
-          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || undefined,
+        emailRedirectTo: false,
         data: {
           display_name: displayName,
           is_admin: false,
